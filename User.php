@@ -1,11 +1,9 @@
 <?php
 
-include 'db_connect.php';
 class User {
     private $username;
-    private $password;
+    private $mot_de_passe;
     private $email;
-    private $age;
 
     public function __construct(array $data) {
         $this->hydrate($data);
@@ -25,69 +23,82 @@ class User {
     }
 
     public function setPassword($password) {
-        $this->password = $password;
+        $this->mot_de_passe = password_hash($password, PASSWORD_DEFAULT);
     }
 
     public function setEmail($email) {
         $this->email = $email;
     }
 
-    public function setAge($age) {
-        $this->age = $age;
-    }
+    public static function deleteUser() {
+        //CONNECT DBD
+        include 'db_connect.php';
 
-    public function save() {
-        // Code pour enregistrer l'utilisateur dans la base de données
-        $username = $this->username;
-        $password = $this->password;
-        $email = $this->email;
-        $age = $this->age;
+        try {
+            $stmt = $pdo->prepare('DELETE FROM utilisateur WHERE id = ?');
+            $stmt->execute([$id]);
 
-        // Exécutez la requête SQL pour insérer l'utilisateur dans la base de données
-        $sql = "INSERT INTO users (username, password, email, age) VALUES ('$username', '$password', '$email', $age)";
-        // Exécutez la requête SQL avec votre connexion à la base de données
-
-        // Vérifiez si l'insertion a réussi ou non
-        if ($result) {
-            echo "Utilisateur créé avec succès.";
-        } else {
-            echo "Erreur lors de la création de l'utilisateur.";
-        }
-    }
-
-    public static function getAllUsers() {
-    }
-
-    public static function deleteUser($id) {
-        // Code pour supprimer un utilisateur de la base de données en fonction de son ID
-        $sql = "DELETE FROM users WHERE id = $id";
-        // Exécutez la requête SQL avec votre connexion à la base de données
-
-        // Vérifiez si la suppression a réussi ou non
-        if ($result) {
-            echo "Utilisateur supprimé avec succès.";
-        } else {
-            echo "Erreur lors de la suppression de l'utilisateur.";
+            echo "User deleted successfully.";
+        } catch (PDOException $e) {
+            echo "Error deleting user: " . $e->getMessage();
         }
     }
 
     public function update() {
-        // Code pour mettre à jour l'utilisateur dans la base de données
-        $username = $this->username;
-        $password = $this->password;
-        $email = $this->email;
-        $age = $this->age;
-
-        // Exécutez la requête SQL pour mettre à jour l'utilisateur dans la base de données
-        $sql = "UPDATE users SET username = '$username', password = '$password', email = '$email', age = $age WHERE id = $id";
-        // Exécutez la requête SQL avec votre connexion à la base de données
-
-        // Vérifiez si la mise à jour a réussi ou non
-        if ($result) {
-            echo "Utilisateur mis à jour avec succès.";
-        } else {
-            echo "Erreur lors de la mise à jour de l'utilisateur.";
+        // CONNECT DB
+        include 'db_connect.php';
+    
+        try {
+            $stmtCheck = $pdo->prepare("SELECT * FROM utilisateur WHERE id = ?");
+            $stmtCheck->execute([$id]);
+    
+            if ($stmtCheck->rowCount() > 0) {
+                $stmt = $pdo->prepare("UPDATE utilisateur SET username = ?, mot_de_passe = ?, email = ? WHERE id = ?");
+                $stmt->execute([$this->username, $this->mot_de_passe, $this->email, $id]);
+    
+                if ($stmt->rowCount() > 0) {
+                    echo "Utilisateur mis à jour avec succès.";
+                } else {
+                    echo "Aucune modification effectuée. Les détails de l'utilisateur restent inchangés.";
+                }
+            } else {
+                echo "L'utilisateur avec l'ID $id n'existe pas.";
+            }
+        } catch (PDOException $e) {
+            echo "Erreur lors de la mise à jour de l'utilisateur : " . $e->getMessage();
         }
     }
+    
+
+    public function register() {
+        include 'db_connect.php';
+
+        try {
+            $stmt = $pdo->prepare('INSERT INTO utilisateur (username, mot_de_passe, email) VALUES (?, ?, ?)');
+            $stmt->execute([$this->username, $this->mot_de_passe, $this->email]);
+            echo "Utilisateur créé avec succès.";
+        } catch (PDOException $e) {
+            echo "Erreur création utilisateur: " . $e->getMessage();
+        }
+    }
+    
+    public function login() {
+        include 'db_connect.php';
+    
+        try {
+            $stmt = $pdo->prepare('SELECT * FROM utilisateur WHERE username = ?');
+            $stmt->execute([$this->username]);
+            $fetch = $stmt->fetch();
+    
+            if ($fetch && password_verify($this->mot_de_passe, $fetch['mot_de_passe'])) {
+                echo "Connexion réussie.";
+            } else {
+                echo "Nom d'utilisateur ou mot de passe incorrect.";
+            }
+        } catch (PDOException $e) {
+            echo "Erreur de connexion: " . $e->getMessage();
+        }
+    }    
 }
 
+?>
